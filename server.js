@@ -120,5 +120,19 @@ app.delete('/api/owner/items/:id', checkOwner, (req, res) => {
 });
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/owner', (req, res) => res.sendFile(path.join(__dirname, 'owner.html')));
+
+app.get("/manifest.json", (req, res) => {
+  res.type("application/manifest+json");
+  res.sendFile(path.join(__dirname, "manifest.json"));
+});
+app.get("/icon.svg", (req, res) => {
+  res.type("image/svg+xml");
+  res.sendFile(path.join(__dirname, "icon.svg"));
+});
+app.get("/sw.js", (req, res) => {
+  res.type("application/javascript");
+  res.sendFile(path.join(__dirname, "sw.js"));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('SpaceStore server running on port ' + PORT));
