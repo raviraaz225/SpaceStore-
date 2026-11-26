@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpaceStore Owner</title>
+  <style>
+    :root { --bg:#070d19; --surface:#0e172a; --topbar:#0b1324; --thumb:#162238; --border:#1c2a46; --text:#f8fafc; --muted:#94a3b8; --chip:#121d33; --chip-active-bg:#ffffff; --chip-active-text:#070d19; --menu-bg:#111c33; }
+    body.light { --bg:#f8fafc; --surface:#ffffff; --topbar:#ffffff; --thumb:#eef2f7; --border:#e2e8f0; --text:#0f172a; --muted:#475569; --chip:#e2e8f0; --chip-active-bg:#0f172a; --chip-active-text:#ffffff; --menu-bg:#ffffff; }
+    * { box-sizing:border-box; margin:0; padding:0; font-family:system-ui,-apple-system,sans-serif; -webkit-tap-highlight-color:transparent; }
+    body { background:var(--bg); color:var(--text); padding-bottom:60px; transition:background 0.2s,color 0.2s; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--topbar); position:sticky; top:0; z-index:30; border-bottom:1px solid var(--border); }
+    .brand { font-size:20px; font-weight:700; }
+    .right-actions { display:flex; align-items:center; gap:10px; position:relative; }
+    .circle-btn { width:36px; height:36px; border-radius:50%; background:var(--thumb); border:1px solid var(--border); color:var(--text); font-size:17px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .dropdown { display:none; position:absolute; right:0; top:44px; width:245px; background:var(--menu-bg); border:1px solid var(--border); border-radius:14px; box-shadow:0 12px 28px rgba(0,0,0,0.45); z-index:70; overflow:hidden; }
+    .dropdown.open { display:block; }
+    .dropdown button { width:100%; text-align:left; background:none; border:none; color:var(--text); padding:13px 14px; font-size:14px; cursor:pointer; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    .dropdown button:last-child { border-bottom:none; }
+    .menu-key-box { padding:12px 14px; border-bottom:1px solid var(--border); background:var(--surface); }
+    .menu-key-box label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .menu-key-box input { width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:13px; }
+    .search-box { display:none; padding:10px 14px; background:var(--topbar); border-bottom:1px solid var(--border); }
+    .search-box input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; }
+    .status-text { margin:8px 14px 0; font-size:13px; color:#4ade80; min-height:18px; }
+    .poster-wrap { position:relative; margin:14px; }
+    .poster-track { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+    .poster-track::-webkit-scrollbar { display:none; }
+    .poster-slide { position:relative; flex:0 0 100%; scroll-snap-align:start; }
+    .poster { position:relative; overflow:hidden; width:100%; aspect-ratio:16 / 9; padding:18px; padding-right:84px; border-radius:18px; background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; cursor:pointer; display:flex; align-items:flex-end; }
+    .poster-media-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; opacity:0.7; pointer-events:none; border:0; }
+    .poster-content { position:relative; z-index:2; pointer-events:none; }
+    .poster h2 { font-size:18px; margin-bottom:4px; text-shadow:0 1px 6px rgba(0,0,0,0.6); }
+    .poster p { font-size:13px; opacity:0.95; text-shadow:0 1px 6px rgba(0,0,0,0.6); }
+    .poster-top-controls { position:absolute; top:10px; right:10px; z-index:20; display:flex; gap:6px; align-items:center; }
+    .poster-top-controls .circle-btn { width:34px; height:34px; font-size:15px; background:rgba(7,13,25,0.65); border-color:rgba(255,255,255,0.28); color:#fff; }
+    .poster-dots-row { display:flex; justify-content:center; gap:6px; margin-top:8px; }
+    .p-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); opacity:0.4; }
+    .p-dot.active { opacity:1; background:#3b82f6; width:18px; border-radius:999px; }
+  </style>
+</head>
+  <style>
+    .add-app-tile-wrap { padding:0 14px 14px; display:flex; gap:10px; }
+    .add-app-tile { width:116px; background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:12px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; color:var(--text); }
+    .add-app-icon { width:52px; height:52px; border-radius:15px; background:var(--thumb); border:1px dashed var(--muted); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; }
+    .add-app-label { font-size:12px; font-weight:700; text-align:center; }
+    .panel-card { display:none; margin:0 14px 16px; padding:14px; border-radius:16px; background:var(--surface); border:1px solid var(--border); }
+    .panel-card.open { display:block; }
+    .panel-card h3 { font-size:15px; margin-bottom:10px; color:#93c5fd; }
+    .panel-card input, .panel-card select { width:100%; padding:10px 12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; }
+    .btn-row { display:flex; gap:8px; }
+    .btn-primary { flex:1; padding:11px; border-radius:10px; border:none; background:#16a34a; color:#fff; font-weight:700; font-size:14px; cursor:pointer; }
+    .btn-secondary { padding:11px 14px; border-radius:10px; border:none; background:#334155; color:#fff; font-weight:600; font-size:14px; cursor:pointer; }
+    .upload-label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .chips { display:flex; gap:8px; padding:8px 14px 12px; overflow-x:auto; }
+    .chip { padding:7px 16px; border-radius:999px; background:var(--chip); color:var(--muted); border:none; font-size:13px; font-weight:600; cursor:pointer; }
+    .chip.active { background:var(--chip-active-bg); color:var(--chip-active-text); }
+    .section-title { padding:4px 14px 12px; font-size:17px; font-weight:700; }
+    .quick-scroll { display:flex; gap:12px; padding:0 14px 20px; overflow-x:auto; }
+    .big-card { display:block; text-align:left; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:14px; cursor:pointer; user-select:none; }
+    .quick-card { min-width:172px; max-width:172px; flex-shrink:0; }
+    .thumb-box { width:100%; height:96px; border-radius:14px; background:var(--thumb); display:flex; align-items:center; justify-content:center; font-size:40px; overflow:hidden; margin-bottom:12px; }
+    .thumb-box img { width:100%; height:100%; object-fit:cover; }
+    .card-title { font-size:16px; font-weight:700; line-height:1.25; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-sub { font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:0 14px; }
+    .grid-card .thumb-box { height:104px; font-size:42px; }
+    .sheet-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:90; align-items:flex-end; }
+    .sheet-backdrop.open { display:flex; }
+    .sheet-box { width:100%; background:var(--surface); border-top:1px solid var(--border); border-radius:20px 20px 0 0; padding:16px; }
+    .sheet-title { font-size:15px; font-weight:700; margin-bottom:12px; color:var(--muted); }
+    .sheet-btn { width:100%; text-align:left; padding:14px; margin-bottom:8px; border-radius:12px; border:1px solid var(--border); background:var(--thumb); color:var(--text); font-size:15px; font-weight:600; cursor:pointer; }
+    .sheet-btn.danger { color:#f87171; }
+    .sheet-btn.cancel { background:none; color:var(--muted); margin-bottom:0; text-align:center; }
+    .inapp-modal { display:none; position:fixed; inset:0; background:var(--bg); z-index:80; flex-direction:column; }
+    .inapp-modal.open { display:flex; }
+    .inapp-bar { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--topbar); border-bottom:1px solid var(--border); }
+    .inapp-left { display:flex; align-items:center; gap:12px; }
+    .circle-back-btn { width:38px; height:38px; border-radius:50%; background:var(--thumb); border:1px solid var(--border); color:var(--text); font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .inapp-brand { font-size:18px; font-weight:700; }
+    .inapp-frame { flex:1; width:100%; height:100%; border:none; background:#fff; }
+  </style>
+<body>
+  <header class="topbar">
+    <div class="brand">SpaceStore</div>
+    <div class="right-actions">
+      <button class="circle-btn" id="searchToggle">&#128269;</button>
+      <button class="circle-btn" id="infoBtn">&#9432;</button>
+      <button class="circle-btn" id="topMoreBtn">&#8942;</button>
+      <div class="dropdown" id="topMoreMenu">
+        <div class="menu-key-box" onclick="event.stopPropagation()">
+          <label for="ownerKey">Owner Key</label>
+          <input type="password" id="ownerKey" placeholder="spacestore-owner-123" />
+        </div>
+        <button id="menuAddPosterBtn"><span>Add Event Poster</span><span>+</span></button>
+        <button id="menuAddAppBtn"><span>Add App</span><span>+</span></button>
+        <button id="menuThemeBtn"><span id="menuThemeText">Brightness Mode</span><strong id="menuThemeBadge">Light</strong></button>
+        <button id="menuRefreshBtn"><span>Refresh</span><span>&#8635;</span></button>
+      </div>
+    </div>
+  </header>
+  <div class="search-box" id="searchBox"><input type="text" id="searchInput" placeholder="Search apps or games..." /></div>
+  <div class="status-text" id="statusMsg"></div>
+  <div class="poster-wrap">
+    <div class="poster-track" id="ownerPosterTrack"></div>
+    <div class="poster-dots-row" id="ownerPosterDots"></div>
+  </div>
+  <div class="add-app-tile-wrap">
+    <button class="add-app-tile" id="addPosterTileBtn" type="button"><div class="add-app-icon">+</div><div class="add-app-label">Add Poster</div></button>
+    <button class="add-app-tile" id="addAppTileBtn" type="button"><div class="add-app-icon">+</div><div class="add-app-label">Add App</div></button>
+  </div>
+  <div class="panel-card" id="posterFormCard">
+    <h3 id="posterFormHeading">Event Poster</h3>
+    <input type="text" id="posterTitleInput" placeholder="Poster Title" />
+    <input type="text" id="posterSubInput" placeholder="Poster Subtitle" />
+    <label class="upload-label" for="posterPhotoInput">Direct Photo Upload (optional)</label>
+    <input type="file" id="posterPhotoInput" accept="image/*" />
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+      <input type="url" id="posterMediaInput" placeholder="Ya Photo / Video Link (https://...)" style="margin-bottom:0;flex:1;" />
+      <button class="btn-secondary" id="clearPosterMediaBtn" type="button">Clear</button>
+    </div>
+    <input type="url" id="posterClickUrlInput" placeholder="Open Link on Click (optional)" />
+    <div class="btn-row">
+      <button class="btn-primary" id="savePosterBtn">Save Poster</button>
+      <button class="btn-secondary" id="closePosterFormBtn">Close</button>
+    </div>
+  </div>
+  <div class="panel-card" id="appFormCard">
+    <h3 id="appFormHeading">Add App</h3>
+    <label class="upload-label" for="iconFileInput">App Icon Upload</label>
+    <input type="file" id="iconFileInput" accept="image/*" />
+    <select id="appCategoryInput"><option value="app">App</option><option value="game">Game</option></select>
+    <input type="text" id="appNameInput" placeholder="App Name" />
+    <input type="url" id="appLinkInput" placeholder="Link (https://...)" />
+    <div class="btn-row"><button class="btn-primary" id="publishAppBtn">Publish</button><button class="btn-secondary" id="closeAppFormBtn">Cancel</button></div>
+  </div>
+  <div class="chips">
+    <button class="chip active" data-filter="all">All</button>
+    <button class="chip" data-filter="app">App</button>
+    <button class="chip" data-filter="game">Game</button>
+  </div>
+  <div class="section-title">Quick Scroll</div>
+  <div class="quick-scroll" id="quickScroll"></div>
+  <div class="section-title" id="gridTitle">All Apps &amp; Games</div>
+  <div class="grid-2" id="gridList"></div>
+  <div class="sheet-backdrop" id="longPressSheet">
+    <div class="sheet-box">
+      <div class="sheet-title" id="sheetItemTitle">App Options</div>
+      <button class="sheet-btn" id="sheetEditBtn">Edit</button>
+      <button class="sheet-btn danger" id="sheetDeleteBtn">Delete</button>
+      <button class="sheet-btn cancel" id="sheetCancelBtn">Cancel</button>
+    </div>
+  </div>
+  <div class="inapp-modal" id="inappModal">
+    <div class="inapp-bar">
+      <div class="inapp-left"><button class="circle-back-btn" id="closeViewerBtn">&#8592;</button><div class="inapp-brand">SpaceStore</div></div>
+      <div class="right-actions">
+        <button class="circle-btn" id="viewerMoreBtn">&#8942;</button>
+        <div class="dropdown" id="viewerMenu">
+          <button id="viewerReloadBtn"><span>Refresh</span><span>&#8635;</span></button>
+          <button id="viewerUpdateBtn"><span>Update App</span><span>&#11015;</span></button>
+          <button id="viewerShareBtn"><span>Share</span><span>&#128279;</span></button>
+        </div>
+      </div>
+    </div>
+    <iframe class="inapp-frame" id="viewerFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  </div>
+  <script>
+    let activeFilter = 'all', searchQuery = '', editingId = null, editingPosterId = null, selectedLongPressItem = null, uploadedIconDataUrl = '', uploadedPosterDataUrl = '', currentAppUrl = '', posterMuted = true, activePosterIndex = 0;
+    const keyInputEl = document.getElementById('ownerKey');
+    keyInputEl.value = localStorage.getItem('spacestore_owner_key') || '';
+    keyInputEl.addEventListener('input', () => localStorage.setItem('spacestore_owner_key', keyInputEl.value.trim()));
+    const savedTheme = localStorage.getItem('spacestore_theme') || 'dark';
+    function applyTheme(mode) {
+      if (mode === 'light') { document.body.classList.add('light'); document.getElementById('menuThemeText').textContent = 'Dark Mode'; document.getElementById('menuThemeBadge').textContent = 'Dark'; }
+      else { document.body.classList.remove('light'); document.getElementById('menuThemeText').textContent = 'Brightness Mode'; document.getElementById('menuThemeBadge').textContent = 'Light'; }
+      localStorage.setItem('spacestore_theme', mode);
+    }
+    applyTheme(savedTheme);
+    function toggleTheme() { applyTheme((localStorage.getItem('spacestore_theme') || 'dark') === 'dark' ? 'light' : 'dark'); }
+    function setMsg(text, isError) { const el = document.getElementById('statusMsg'); el.style.color = isError ? '#f87171' : '#4ade80'; el.textContent = text; }
+    function getKey() { return keyInputEl.value.trim(); }
+    function closeAllMenus() { document.getElementById('topMoreMenu').classList.remove('open'); document.getElementById('viewerMenu').classList.remove('open'); document.querySelectorAll('.p-menu').forEach(m => m.classList.remove('open')); }
+    document.addEventListener('click', closeAllMenus);
+    document.getElementById('topMoreBtn').onclick = (e) => { e.stopPropagation(); const o = !document.getElementById('topMoreMenu').classList.contains('open'); closeAllMenus(); if (o) document.getElementById('topMoreMenu').classList.add('open'); };
+    document.getElementById('viewerMoreBtn').onclick = (e) => { e.stopPropagation(); const o = !document.getElementById('viewerMenu').classList.contains('open'); closeAllMenus(); if (o) document.getElementById('viewerMenu').classList.add('open'); };
+    document.getElementById('menuThemeBtn').onclick = () => { toggleTheme(); closeAllMenus(); };
+    document.getElementById('menuRefreshBtn').onclick = () => { closeAllMenus(); loadData(); setMsg('Refreshed', false); };
+    document.getElementById('infoBtn').onclick = () => setMsg('Posters ko right/left swipe karein. Cards ko long-press karke Edit/Delete karein.', false);
+    document.getElementById('searchToggle').onclick = () => { const b = document.getElementById('searchBox'); const inp = document.getElementById('searchInput'); const open = b.style.display !== 'block'; b.style.display = open ? 'block' : 'none'; if (!open && inp) { inp.value = ''; searchQuery = ''; renderPosters(); renderItems(); } else if (inp) { inp.focus(); } };
+    document.getElementById('searchInput').oninput = (e) => { searchQuery = e.target.value.trim().toLowerCase(); renderPosters(); renderItems(); };
+    function syncNamePlaceholder() { document.getElementById('appNameInput').placeholder = document.getElementById('appCategoryInput').value === 'game' ? 'Game Name' : 'App Name'; }
+    document.getElementById('appCategoryInput').onchange = syncNamePlaceholder;
+    document.getElementById('posterPhotoInput').onchange = (e) => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      const rd = new FileReader(); rd.onload = () => { uploadedPosterDataUrl = String(rd.result || ''); document.getElementById('posterMediaInput').value = uploadedPosterDataUrl; }; rd.readAsDataURL(f);
+    };
+    document.getElementById('clearPosterMediaBtn').onclick = () => {
+      uploadedPosterDataUrl = ''; document.getElementById('posterPhotoInput').value = ''; document.getElementById('posterMediaInput').value = ''; setMsg('Link clear ho gaya.', false);
+    };
+    function openPosterForm(posterObj, isNew) {
+      uploadedPosterDataUrl = ''; document.getElementById('posterPhotoInput').value = '';
+      if (isNew || !posterObj) {
+        editingPosterId = null; document.getElementById('posterFormHeading').textContent = 'Add New Event Poster';
+        document.getElementById('posterTitleInput').value = ''; document.getElementById('posterSubInput').value = '';
+        document.getElementById('posterMediaInput').value = ''; document.getElementById('posterClickUrlInput').value = '';
+      } else {
+        editingPosterId = posterObj.id; document.getElementById('posterFormHeading').textContent = 'Change Event Poster';
+        document.getElementById('posterTitleInput').value = posterObj.title || ''; document.getElementById('posterSubInput').value = posterObj.subtitle || '';
+        document.getElementById('posterMediaInput').value = posterObj.mediaUrl || ''; document.getElementById('posterClickUrlInput').value = posterObj.url || '';
+      }
+      document.getElementById('appFormCard').classList.remove('open'); document.getElementById('posterFormCard').classList.add('open');
+    }
+    document.getElementById('menuAddPosterBtn').onclick = () => { closeAllMenus(); openPosterForm(null, true); };
+    document.getElementById('addPosterTileBtn').onclick = () => openPosterForm(null, true);
+    document.getElementById('closePosterFormBtn').onclick = () => { editingPosterId = null; document.getElementById('posterFormCard').classList.remove('open'); };
+    document.getElementById('savePosterBtn').onclick = async () => {
+      const k = getKey(); if (!k) return setMsg('Pehle 3-dot menu mein Owner Key dalein.', true);
+      const title = document.getElementById('posterTitleInput').value.trim() || 'SpaceStore', subtitle = document.getElementById('posterSubInput').value.trim() || 'Featured Event';
+      const mediaUrl = uploadedPosterDataUrl || document.getElementById('posterMediaInput').value.trim(), url = document.getElementById('posterClickUrlInput').value.trim();
+      const r = await fetch('/api/owner/poster', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerKey: k, id: editingPosterId, title, subtitle, mediaUrl, url }) });
+      const d = await r.json();
+      if (r.ok) { editingPosterId = null; document.getElementById('posterFormCard').classList.remove('open'); setMsg('Poster saved.', false); loadData(); } else setMsg(d.error || 'Error', true);
+    };
+    function openAppForm(itemToEdit) {
+      document.getElementById('posterFormCard').classList.remove('open'); document.getElementById('appFormCard').classList.add('open');
+      uploadedIconDataUrl = ''; document.getElementById('iconFileInput').value = '';
+      if (itemToEdit) { editingId = itemToEdit.id; document.getElementById('appFormHeading').textContent = 'Edit App'; document.getElementById('appCategoryInput').value = itemToEdit.category || 'app'; syncNamePlaceholder(); document.getElementById('appNameInput').value = itemToEdit.title || ''; document.getElementById('appLinkInput').value = itemToEdit.url || ''; document.getElementById('publishAppBtn').textContent = 'Save Changes'; }
+      else { editingId = null; document.getElementById('appFormHeading').textContent = 'Add App'; document.getElementById('appCategoryInput').value = 'app'; syncNamePlaceholder(); document.getElementById('appNameInput').value = ''; document.getElementById('appLinkInput').value = ''; document.getElementById('publishAppBtn').textContent = 'Publish'; }
+    }
+    document.getElementById('menuAddAppBtn').onclick = () => { closeAllMenus(); openAppForm(null); };
+    document.getElementById('addAppTileBtn').onclick = () => openAppForm(null);
+    document.getElementById('closeAppFormBtn').onclick = () => { editingId = null; document.getElementById('appFormCard').classList.remove('open'); };
+    document.getElementById('iconFileInput').onchange = (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { uploadedIconDataUrl = String(rd.result || ''); }; rd.readAsDataURL(f); };
+    document.getElementById('publishAppBtn').onclick = async () => {
+      const k = getKey(); if (!k) return setMsg('Pehle 3-dot menu mein Owner Key dalein.', true);
+      const title = document.getElementById('appNameInput').value.trim(), category = document.getElementById('appCategoryInput').value, url = document.getElementById('appLinkInput').value.trim();
+      const existing = editingId !== null ? (window.allItems || []).find(x => x.id === editingId) : null; const icon = uploadedIconDataUrl || (existing ? existing.icon : '') || '';
+      const r = await fetch(editingId !== null ? '/api/owner/items/' + editingId : '/api/owner/publish', { method: editingId !== null ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerKey: k, title, category, url, icon }) });
+      const d = await r.json();
+      if (r.ok) { setMsg((editingId !== null ? 'Updated: ' : 'Published: ') + d.title, false); editingId = null; document.getElementById('appFormCard').classList.remove('open'); loadData(); } else setMsg(d.error || 'Error', true);
+    };
+    document.querySelectorAll('.chip').forEach(btn => { btn.onclick = () => { document.querySelectorAll('.chip').forEach(b => b.classList.remove('active')); btn.classList.add('active'); activeFilter = btn.dataset.filter; renderItems(); }; });
+    function openSheetForItem(item) { selectedLongPressItem = item; document.getElementById('sheetItemTitle').textContent = item.title; document.getElementById('longPressSheet').classList.add('open'); }
+    document.getElementById('sheetCancelBtn').onclick = () => { selectedLongPressItem = null; document.getElementById('longPressSheet').classList.remove('open'); };
+    document.getElementById('sheetEditBtn').onclick = () => { const it = selectedLongPressItem; document.getElementById('longPressSheet').classList.remove('open'); if (it) openAppForm(it); };
+    document.getElementById('sheetDeleteBtn').onclick = async () => {
+      const it = selectedLongPressItem; document.getElementById('longPressSheet').classList.remove('open'); if (!it) return;
+      const k = getKey(); if (!k) return setMsg('Delete ke liye 3-dot menu mein Owner Key dalein.', true);
+      const r = await fetch('/api/owner/items/' + it.id + '?ownerKey=' + encodeURIComponent(k), { method: 'DELETE', headers: { 'x-owner-key': k } }); const d = await r.json();
+      if (r.ok) { setMsg('Deleted: ' + it.title, false); loadData(); } else setMsg(d.error || 'Error', true);
+    };
+    function openViewer(url) { if (!url) return; currentAppUrl = url; document.getElementById('viewerFrame').src = url; document.getElementById('inappModal').classList.add('open'); }
+    document.getElementById('closeViewerBtn').onclick = () => { currentAppUrl = ''; document.getElementById('inappModal').classList.remove('open'); document.getElementById('viewerMenu').classList.remove('open'); document.getElementById('viewerFrame').src = 'about:blank'; };
+    document.getElementById('viewerReloadBtn').onclick = () => { closeAllMenus(); if (currentAppUrl) document.getElementById('viewerFrame').src = currentAppUrl; };
+    document.getElementById('viewerUpdateBtn').onclick = () => { closeAllMenus(); loadData(); setMsg('Updated', false); };
+    document.getElementById('viewerShareBtn').onclick = async () => { closeAllMenus(); const u = currentAppUrl || window.location.href; if (navigator.share) { try { await navigator.share({ title: 'SpaceStore', url: u }); } catch (_) {} } else if (navigator.clipboard) { await navigator.clipboard.writeText(u); setMsg('Link copied', false); } };
+    function renderThumb(icon, title) { if (icon && (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('/') || icon.startsWith('data:image/'))) return '<img src="' + icon + '" alt="' + title + '" />'; return icon || (title ? title[0].toUpperCase() : 'A'); }
+    function isDirectVideo(u) { return /\.(mp4|webm|ogg)(\?.*)?$/i.test(u || '') || String(u || '').startsWith('data:video/'); }
+    function getYtId(u) { const m = (u || '').match(/(?:v=|\/embed\/|youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})/); return m ? m[1] : ''; }
+    function setOwnerPosterMediaSilent(silent) {
+      const track = document.getElementById('ownerPosterTrack');
+      if (!track) return;
+      track.querySelectorAll('video.poster-media-bg').forEach(v => {
+        if (silent) {
+          v.muted = true;
+          v.pause();
+        } else {
+          v.muted = posterMuted;
+          v.play().catch(() => {});
+        }
+      });
+      track.querySelectorAll('iframe.poster-media-bg').forEach(f => {
+        if (!f.contentWindow) return;
+        const cmd1 = silent ? 'mute' : (posterMuted ? 'mute' : 'unMute');
+        const cmd2 = silent ? 'pauseVideo' : 'playVideo';
+        f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd1, args: [] }), '*');
+        f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd2, args: [] }), '*');
+      });
+    }
+    function renderPosters() {
+      const list = Array.isArray(window.allPosters) ? window.allPosters : [];
+      const track = document.getElementById('ownerPosterTrack'), dots = document.getElementById('ownerPosterDots');
+      const pWrap = track ? track.parentElement : null;
+      if (pWrap) pWrap.style.display = searchQuery ? 'none' : 'block';
+      if (searchQuery) { setOwnerPosterMediaSilent(true); return; }
+      setOwnerPosterMediaSilent(false);
+      track.innerHTML = ''; dots.innerHTML = '';
+      if (!list.length) return;
+      list.forEach((p, idx) => {
+        const slide = document.createElement('div'); slide.className = 'poster-slide';
+        const card = document.createElement('section'); card.className = 'poster';
+        const media = p.mediaUrl || '';
+        let vidEl = null, ytEl = null;
+        if (media && isDirectVideo(media)) { vidEl = document.createElement('video'); vidEl.className = 'poster-media-bg'; vidEl.src = media; vidEl.autoplay = true; vidEl.loop = true; vidEl.muted = posterMuted; vidEl.playsInline = true; vidEl.controls = false; card.appendChild(vidEl); }
+        else if (media && getYtId(media)) { const id = getYtId(media); ytEl = document.createElement('iframe'); ytEl.className = 'poster-media-bg'; ytEl.src = 'https://www.youtube.com/embed/' + id + '?enablejsapi=1&autoplay=1&mute=' + (posterMuted ? 1 : 0) + '&controls=0&rel=0&playsinline=1&loop=1&playlist=' + id; ytEl.allow = 'autoplay; encrypted-media'; card.appendChild(ytEl); }
+        else if (media) { const img = document.createElement('img'); img.className = 'poster-media-bg'; img.src = media; card.appendChild(img); }
+        const content = document.createElement('div'); content.className = 'poster-content'; content.innerHTML = '<h2>' + (p.title || 'SpaceStore') + '</h2><p>' + (p.subtitle || 'Featured Event') + '</p>'; card.appendChild(content); card.onclick = () => { if (p.url) openViewer(p.url); }; slide.appendChild(card);
+        const ctrls = document.createElement('div'); ctrls.className = 'poster-top-controls';
+        if (vidEl || ytEl) {
+          const mBtn = document.createElement('button'); mBtn.type = 'button'; mBtn.className = 'circle-btn'; mBtn.textContent = posterMuted ? '🔇' : '🔊'; mBtn.dataset.role = 'mute';
+          mBtn.onclick = (e) => { e.stopPropagation(); posterMuted = !posterMuted; track.querySelectorAll('.poster-top-controls .circle-btn').forEach(b => { if (b.dataset.role === 'mute') b.textContent = posterMuted ? '🔇' : '🔊'; }); track.querySelectorAll('video.poster-media-bg').forEach(v => { v.muted = posterMuted; if (v.paused) v.play().catch(() => {}); }); track.querySelectorAll('iframe.poster-media-bg').forEach(f => { if (f.contentWindow) f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: posterMuted ? 'mute' : 'unMute', args: [] }), '*'); }); };
+          ctrls.appendChild(mBtn);
+        }
+        const dotWrap = document.createElement('div'); dotWrap.className = 'poster-dots';
+        const dBtn = document.createElement('button'); dBtn.type = 'button'; dBtn.className = 'circle-btn'; dBtn.innerHTML = '&#8942;';
+        const menu = document.createElement('div'); menu.className = 'dropdown p-menu';
+        menu.innerHTML = '<button type="button" class="p-edit"><span>Change Poster</span><span>&#9998;</span></button><button type="button" class="p-del"><span>Delete Poster</span><span>&#128465;</span></button>';
+        dBtn.onclick = (e) => { e.stopPropagation(); const o = !menu.classList.contains('open'); closeAllMenus(); if (o) menu.classList.add('open'); };
+        menu.querySelector('.p-edit').onclick = (e) => { e.stopPropagation(); closeAllMenus(); openPosterForm(p, false); };
+        menu.querySelector('.p-del').onclick = async (e) => { e.stopPropagation(); closeAllMenus(); const k = getKey(); if (!k) return setMsg('Pehle Owner Key dalein.', true); const r = await fetch('/api/owner/poster?id=' + p.id + '&ownerKey=' + encodeURIComponent(k), { method: 'DELETE', headers: { 'x-owner-key': k } }); if (r.ok) { setMsg('Poster deleted.', false); loadData(); } };
+        dotWrap.appendChild(dBtn); dotWrap.appendChild(menu); ctrls.appendChild(dotWrap); slide.appendChild(ctrls); track.appendChild(slide);
+        const dot = document.createElement('div'); dot.className = 'p-dot' + (idx === activePosterIndex ? ' active' : ''); dots.appendChild(dot);
+      });
+      track.onscroll = () => { const w = track.clientWidth || 1, i = Math.round(track.scrollLeft / w); activePosterIndex = i; dots.querySelectorAll('.p-dot').forEach((d, k) => d.classList.toggle('active', k === i)); };
+    }
+    function attachCardInteractions(el, item) {
+      let timer = null, longPressed = false;
+      const startPress = () => { longPressed = false; timer = setTimeout(() => { longPressed = true; openSheetForItem(item); }, 550); };
+      const cancelPress = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      el.addEventListener('touchstart', startPress, { passive: true }); el.addEventListener('touchend', cancelPress); el.addEventListener('touchmove', cancelPress);
+      el.addEventListener('mousedown', startPress); el.addEventListener('mouseup', cancelPress); el.addEventListener('mouseleave', cancelPress);
+      el.addEventListener('contextmenu', (e) => { e.preventDefault(); openSheetForItem(item); });
+      el.addEventListener('click', () => { if (longPressed) return; fetch('/api/track-open/' + encodeURIComponent(item.code), { method: 'POST' }).catch(() => {}); openViewer(item.url); });
+    }
+    function renderItems() {
+      const all = window.allItems || [], filtered = all.filter(item => (activeFilter === 'all' || item.category === activeFilter) && (!searchQuery || item.title.toLowerCase().includes(searchQuery) || (item.subtitle || '').toLowerCase().includes(searchQuery)));
+      const quickContainer = document.getElementById('quickScroll'); quickContainer.innerHTML = '';
+      all.forEach(item => { const card = document.createElement('div'); card.className = 'big-card quick-card'; card.innerHTML = '<div class="thumb-box">' + renderThumb(item.icon, item.title) + '</div><div class="card-title">' + item.title + '</div><div class="card-sub">' + (item.category === 'game' ? 'Game' : 'App') + '</div>'; attachCardInteractions(card, item); quickContainer.appendChild(card); });
+      document.getElementById('gridTitle').textContent = activeFilter === 'game' ? 'Games' : activeFilter === 'app' ? 'Apps' : 'All Apps & Games';
+      const gridContainer = document.getElementById('gridList'); gridContainer.innerHTML = '';
+      filtered.forEach(item => { const card = document.createElement('div'); card.className = 'big-card grid-card'; card.innerHTML = '<div class="thumb-box">' + renderThumb(item.icon, item.title) + '</div><div class="card-title">' + item.title + '</div><div class="card-sub">' + (item.category === 'game' ? 'Game' : 'App') + '</div>'; attachCardInteractions(card, item); gridContainer.appendChild(card); });
+    }
+    async function loadData() { const r = await fetch('/api/items'); const d = await r.json(); window.allItems = d.items || []; window.allPosters = d.posters || []; renderPosters(); renderItems(); }
+    loadData();
+  </script>
+</body>
+</html>

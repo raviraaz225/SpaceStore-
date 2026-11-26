@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpaceStore</title>
+  <style>
+    :root { --bg:#070d19; --surface:#0e172a; --topbar:#0b1324; --thumb:#162238; --border:#1c2a46; --text:#f8fafc; --muted:#94a3b8; --chip:#121d33; --chip-active-bg:#ffffff; --chip-active-text:#070d19; --menu-bg:#111c33; }
+    body.light { --bg:#f8fafc; --surface:#ffffff; --topbar:#ffffff; --thumb:#eef2f7; --border:#e2e8f0; --text:#0f172a; --muted:#475569; --chip:#e2e8f0; --chip-active-bg:#0f172a; --chip-active-text:#ffffff; --menu-bg:#ffffff; }
+    * { box-sizing:border-box; margin:0; padding:0; font-family:system-ui,-apple-system,sans-serif; -webkit-tap-highlight-color:transparent; }
+    body { background:var(--bg); color:var(--text); padding-bottom:44px; transition:background 0.2s,color 0.2s; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:var(--topbar); position:sticky; top:0; z-index:20; border-bottom:1px solid var(--border); }
+    .brand { font-size:20px; font-weight:700; }
+    .icons { display:flex; gap:12px; align-items:center; position:relative; }
+    .icon-btn { background:none; border:none; color:var(--text); font-size:19px; cursor:pointer; padding:4px 6px; border-radius:8px; position:relative; }
+    .notif-badge { position:absolute; top:-2px; right:-2px; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:#ef4444; color:#fff; font-size:10px; font-weight:700; display:none; align-items:center; justify-content:center; }
+    .notif-badge.show { display:flex; }
+    .dropdown { display:none; position:absolute; right:0; top:44px; width:215px; background:var(--menu-bg); border:1px solid var(--border); border-radius:14px; box-shadow:0 12px 28px rgba(0,0,0,0.32); z-index:60; overflow:hidden; }
+    .dropdown.open { display:block; }
+    .dropdown button { width:100%; text-align:left; background:none; border:none; color:var(--text); padding:12px 14px; font-size:14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); }
+    .dropdown button:last-child { border-bottom:none; }
+    .search-box { display:none; padding:10px 16px; background:var(--topbar); border-bottom:1px solid var(--border); }
+    .search-box input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; }
+    .chips { display:flex; gap:8px; padding:12px 16px; overflow-x:auto; }
+    .chip { padding:7px 16px; border-radius:999px; background:var(--chip); color:var(--muted); border:none; font-size:13px; font-weight:600; cursor:pointer; }
+    .chip.active { background:var(--chip-active-bg); color:var(--chip-active-text); }
+    .poster-wrap { position:relative; margin:4px 16px 20px; }
+    .poster-track { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+    .poster-track::-webkit-scrollbar { display:none; }
+    .poster { position:relative; overflow:hidden; flex:0 0 100%; scroll-snap-align:start; aspect-ratio:16 / 9; padding:18px; border-radius:18px; background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; cursor:pointer; display:flex; align-items:flex-end; }
+    .poster-media-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; opacity:0.75; pointer-events:none; border:0; }
+    .poster-content { position:relative; z-index:2; max-width:85%; pointer-events:none; }
+    .poster h2 { font-size:18px; margin-bottom:4px; text-shadow:0 1px 6px rgba(0,0,0,0.6); }
+    .poster p { font-size:13px; opacity:0.95; text-shadow:0 1px 6px rgba(0,0,0,0.6); }
+    .poster-mute { position:absolute; top:10px; right:10px; z-index:10; width:34px; height:34px; border-radius:50%; background:rgba(7,13,25,0.65); border:1px solid rgba(255,255,255,0.28); color:#fff; font-size:15px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .poster-dots-row { display:flex; justify-content:center; gap:6px; margin-top:8px; }
+    .p-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); opacity:0.4; }
+    .p-dot.active { opacity:1; background:#3b82f6; width:18px; border-radius:999px; }
+    .section-title { padding:4px 16px 12px; font-size:17px; font-weight:700; }
+    .quick-scroll { display:flex; gap:12px; padding:0 16px 22px; overflow-x:auto; }
+    .big-card { display:block; text-align:left; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:14px; cursor:pointer; }
+    .quick-card { min-width:172px; max-width:172px; flex-shrink:0; }
+    .thumb-box { width:100%; height:96px; border-radius:14px; background:var(--thumb); display:flex; align-items:center; justify-content:center; font-size:40px; overflow:hidden; margin-bottom:14px; }
+    .thumb-box img { width:100%; height:100%; object-fit:cover; }
+    .card-title { font-size:16px; font-weight:700; line-height:1.25; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-sub { font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:0 16px; }
+    .grid-card .thumb-box { height:104px; font-size:42px; }
+    .info-page { display:none; position:fixed; inset:0; background:var(--bg); z-index:75; flex-direction:column; overflow-y:auto; padding-bottom:32px; }
+    .info-page.open { display:flex; }
+    .info-topbar { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--topbar); position:sticky; top:0; z-index:20; border-bottom:1px solid var(--border); gap:10px; }
+    .info-left { display:flex; align-items:center; gap:12px; }
+    .info-circle-btn { width:38px; height:38px; border-radius:50%; background:var(--thumb); border:1px solid var(--border); color:var(--text); font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .info-title { font-size:18px; font-weight:800; }
+    .info-list { padding:16px; display:flex; flex-direction:column; gap:10px; }
+    .notif-item { position:relative; padding:13px 14px; border-radius:16px; background:var(--surface); border:1px solid var(--border); font-size:13.5px; cursor:pointer; transition:all 0.16s ease; display:flex; flex-direction:column; gap:6px; }
+    .notif-item:hover { border-color:#3b82f6; }
+    .notif-item.active-info { background:linear-gradient(135deg,rgba(37,99,235,0.28),rgba(124,58,237,0.28)); border-color:#60a5fa; box-shadow:0 8px 22px rgba(37,99,235,0.25); }
+    .notif-top-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .notif-tag { font-size:10px; font-weight:800; padding:3px 8px; border-radius:999px; background:rgba(37,99,235,0.18); color:#60a5fa; border:1px solid rgba(59,130,246,0.35); text-transform:uppercase; }
+    .notif-item.active-info .notif-tag { background:#2563eb; color:#fff; border-color:#93c5fd; }
+    .notif-go { font-size:12px; font-weight:700; color:#93c5fd; }
+    .notif-text { font-weight:600; line-height:1.35; color:var(--text); }
+    .notif-time { font-size:11px; color:var(--muted); }
+.notif-item.opened-info { background:#ffffff; color:#0f172a; border-color:#cbd5e1; box-shadow:0 8px 20px rgba(0,0,0,0.22); }
+    .notif-item.opened-info .notif-text { color:#0f172a; }
+    .notif-item.opened-info .notif-time { color:#475569; }
+    .notif-item.opened-info .notif-go { color:#1d4ed8; }
+    .notif-item.opened-info .notif-tag { background:#0f172a; color:#ffffff; border-color:#0f172a; }
+    .inapp-modal { display:none; position:fixed; inset:0; background:var(--bg); z-index:50; flex-direction:column; }
+    .inapp-modal.open { display:flex; }
+    .inapp-bar { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--topbar); border-bottom:1px solid var(--border); gap:12px; position:relative; }
+    .inapp-left { display:flex; align-items:center; gap:12px; }
+    .circle-back-btn { width:38px; height:38px; border-radius:50%; background:var(--thumb); border:1px solid var(--border); color:var(--text); font-size:18px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .inapp-brand { font-size:18px; font-weight:700; }
+    .inapp-frame { flex:1; width:100%; height:100%; border:none; background:#fff; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">SpaceStore</div>
+    <div class="icons">
+      <button class="icon-btn" id="searchToggle">&#128269;</button>
+      <button class="icon-btn" id="notifBtn">&#128276;<span class="notif-badge" id="notifBadge">0</span></button>
+      <button class="icon-btn" id="moreBtn">&#8942;</button>
+      <div class="dropdown" id="moreMenu">
+        <button id="themeToggleBtn"><span>Theme</span><strong id="themeLabel">White Mode</strong></button>
+        <button id="shareBtn"><span>Share</span><span>&#128279;</span></button>
+        <button id="refreshBtn"><span>Refresh</span><span>&#8635;</span></button>
+        <button id="updateAppBtn"><span>Update App</span><span>&#11015;</span></button>
+      </div>
+    </div>
+  </header>
+  <div class="search-box" id="searchBox"><input type="text" id="searchInput" placeholder="Search..." /></div>
+  <div class="chips">
+    <button class="chip active" data-filter="all">All</button>
+    <button class="chip" data-filter="app">App</button>
+    <button class="chip" data-filter="game">Game</button>
+  </div>
+  <div class="poster-wrap" id="posterWrap">
+    <div class="poster-track" id="posterTrack"></div>
+    <div class="poster-dots-row" id="posterDots"></div>
+  </div>
+  <div class="section-title">Quick Scroll</div>
+  <div class="quick-scroll" id="quickScroll"></div>
+  <div class="section-title" id="gridTitle">All Apps &amp; Games</div>
+  <div class="grid-2" id="gridList"></div>
+  <div class="info-page" id="notifModal">
+    <header class="info-topbar">
+      <div class="info-left">
+        <button class="info-circle-btn" id="closeNotifBtn" type="button">&#8592;</button>
+        <div class="info-title">SpaceStore Information</div>
+      </div>
+      <div class="icons">
+        <button class="info-circle-btn" id="infoMoreBtn" type="button">&#8942;</button>
+        <div class="dropdown" id="infoMoreMenu">
+          <button id="infoDeleteBtn" type="button"><span>Delete Information</span><span>&#128465;</span></button>
+          <button id="infoShareBtn" type="button"><span>Share Information</span><span>&#128279;</span></button>
+          <button id="infoRefreshBtn" type="button"><span>Refresh</span><span>&#8635;</span></button>
+          <button id="infoUpdateBtn" type="button"><span>App Update</span><span>&#11015;</span></button>
+        </div>
+      </div>
+    </header>
+    <div class="info-list" id="notifList"></div>
+  </div>
+  </div>
+  <div class="inapp-modal" id="inappModal">
+    <div class="inapp-bar">
+      <div class="inapp-left"><button class="circle-back-btn" id="closeViewerBtn">&#8592;</button><div class="inapp-brand">SpaceStore</div></div>
+      <div class="icons">
+        <button class="icon-btn" id="viewerMoreBtn">&#8942;</button>
+        <div class="dropdown" id="viewerMenu">
+          <button id="viewerReloadBtn"><span>Refresh</span><span>&#8635;</span></button>
+          <button id="viewerUpdateBtn"><span>Update App</span><span>&#11015;</span></button>
+          <button id="viewerShareBtn"><span>Share</span><span>&#128279;</span></button>
+        </div>
+      </div>
+    </div>
+    <iframe class="inapp-frame" id="viewerFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  </div>
+  <script>
+    let activeFilter = 'all', openedInfoIds = JSON.parse(localStorage.getItem('spacestore_opened_infos') || '[]'), searchQuery = '', currentAppUrl = '', seenNotifId = Number(localStorage.getItem('spacestore_seen_notif') || '0'), posterMuted = true, lastPosterSig = '';
+    const savedTheme = localStorage.getItem('spacestore_theme') || 'dark';
+    function applyTheme(mode) {
+      if (mode === 'light') { document.body.classList.add('light'); document.getElementById('themeLabel').textContent = 'Dark Mode'; }
+      else { document.body.classList.remove('light'); document.getElementById('themeLabel').textContent = 'White Mode'; }
+      localStorage.setItem('spacestore_theme', mode);
+    }
+    applyTheme(savedTheme);
+    function toggleTheme() { applyTheme((localStorage.getItem('spacestore_theme') || 'dark') === 'dark' ? 'light' : 'dark'); }
+    async function shareSpaceStore() {
+      const shareData = { title: 'SpaceStore', url: currentAppUrl || window.location.href };
+      if (navigator.share) { try { await navigator.share(shareData); } catch (_) {} }
+      else if (navigator.clipboard) { await navigator.clipboard.writeText(shareData.url); alert('Copied'); }
+    }
+    async function checkUpdateApp() { await loadItems(); alert('Updated'); }
+    function markInfoOpened(id) {
+      if (!id) return;
+      if (!openedInfoIds.includes(id)) {
+        openedInfoIds.push(id);
+        localStorage.setItem('spacestore_opened_infos', JSON.stringify(openedInfoIds));
+      }
+    }
+    function jumpToNotifTarget(n) {
+      if (!n) return;
+      markInfoOpened(n.id);
+      renderNotifications();
+      document.getElementById('notifModal').classList.remove('open');
+      document.getElementById('infoMoreMenu').classList.remove('open');
+      if (n.targetType === 'item') {
+        const list = window.allItems || [];
+        const found = list.find(i => (n.targetId && i.id === n.targetId) || (n.targetCode && i.code === n.targetCode) || (n.targetUrl && i.url === n.targetUrl));
+        if (found) { openInSpaceStore(found); return; }
+        if (n.targetUrl) { openUrlInSpaceStore(n.targetUrl); return; }
+      }
+      if (n.targetType === 'poster') {
+        const wrap = document.getElementById('posterWrap');
+        if (wrap && wrap.style.display !== 'none') {
+          wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (n.targetUrl) {
+          openUrlInSpaceStore(n.targetUrl);
+        }
+      }
+    }
+    function renderNotifications() {
+      const list = window.allNotifs || [], badge = document.getElementById('notifBadge'), unseen = list.filter(n => n.id > seenNotifId).length;
+      if (unseen > 0) { badge.textContent = String(unseen); badge.classList.add('show'); } else { badge.classList.remove('show'); }
+      const container = document.getElementById('notifList');
+      container.innerHTML = '';
+      if (!list.length) {
+        container.innerHTML = '<div class="notif-item"><div class="notif-text">Koi information nahi hai.</div></div>';
+        return;
+      }
+      list.forEach(n => {
+        const isOpened = openedInfoIds.includes(n.id);
+        const box = document.createElement('div');
+        box.className = 'notif-item' + (isOpened ? ' opened-info' : '');
+        const hasJump = n.targetType === 'item' || n.targetType === 'poster' || !!n.targetUrl;
+        box.innerHTML =
+          '<div class="notif-top-row"><span class="notif-tag">' + (n.tag || 'UPDATE') + '</span><span class="notif-go">' + (isOpened ? 'Opened ✓' : (hasJump ? 'Open →' : '')) + '</span></div>' +
+          '<div class="notif-text">' + n.text + '</div>' +
+          '<div class="notif-time">' + (n.time || '') + '</div>';
+        box.onclick = () => jumpToNotifTarget(n);
+        container.appendChild(box);
+      });
+    }
+    document.getElementById('infoMoreBtn').onclick = (e) => {
+      e.stopPropagation();
+      document.getElementById('infoMoreMenu').classList.toggle('open');
+    };
+    document.addEventListener('click', () => {
+      document.getElementById('infoMoreMenu').classList.remove('open');
+    });
+    document.getElementById('infoDeleteBtn').onclick = () => {
+      document.getElementById('infoMoreMenu').classList.remove('open');
+      window.allNotifs = [];
+      openedInfoIds = [];
+      localStorage.removeItem('spacestore_opened_infos');
+      renderNotifications();
+    };
+    document.getElementById('infoShareBtn').onclick = async () => {
+      document.getElementById('infoMoreMenu').classList.remove('open');
+      const selected = (window.allNotifs || []).find(x => x.id === activeInfoId);
+      const summary = selected ? ('SpaceStore Information: ' + selected.text) : 'SpaceStore Information';
+      if (navigator.share) { try { await navigator.share({ title: 'SpaceStore Information', text: summary, url: window.location.href }); } catch (_) {} }
+      else if (navigator.clipboard) { await navigator.clipboard.writeText(summary); alert('Copied'); }
+    };
+    document.getElementById('infoRefreshBtn').onclick = async () => {
+      document.getElementById('infoMoreMenu').classList.remove('open');
+      await loadItems();
+    };
+    document.getElementById('infoUpdateBtn').onclick = async () => {
+      document.getElementById('infoMoreMenu').classList.remove('open');
+      await checkUpdateApp();
+    };
+    document.getElementById('notifBtn').onclick = () => {
+      document.getElementById('notifModal').classList.add('open');
+      const list = window.allNotifs || [];
+      if (list.length) { seenNotifId = list[0].id; localStorage.setItem('spacestore_seen_notif', String(seenNotifId)); }
+      renderNotifications();
+    };
+    document.getElementById('closeNotifBtn').onclick = () => document.getElementById('notifModal').classList.remove('open');
+    document.getElementById('themeToggleBtn').onclick = () => { toggleTheme(); document.getElementById('moreMenu').classList.remove('open'); };
+    document.getElementById('shareBtn').onclick = () => { currentAppUrl = ''; document.getElementById('moreMenu').classList.remove('open'); shareSpaceStore(); };
+    document.getElementById('refreshBtn').onclick = () => { document.getElementById('moreMenu').classList.remove('open'); loadItems(); };
+    document.getElementById('updateAppBtn').onclick = () => { document.getElementById('moreMenu').classList.remove('open'); checkUpdateApp(); };
+    document.getElementById('viewerReloadBtn').onclick = () => { document.getElementById('viewerMenu').classList.remove('open'); if (currentAppUrl) document.getElementById('viewerFrame').src = currentAppUrl; };
+    document.getElementById('viewerUpdateBtn').onclick = () => { document.getElementById('viewerMenu').classList.remove('open'); checkUpdateApp(); };
+    document.getElementById('viewerShareBtn').onclick = () => { document.getElementById('viewerMenu').classList.remove('open'); shareSpaceStore(); };
+    document.getElementById('moreBtn').onclick = (e) => { e.stopPropagation(); document.getElementById('moreMenu').classList.toggle('open'); };
+    document.getElementById('viewerMoreBtn').onclick = (e) => { e.stopPropagation(); document.getElementById('viewerMenu').classList.toggle('open'); };
+    document.addEventListener('click', () => { document.getElementById('moreMenu').classList.remove('open'); document.getElementById('viewerMenu').classList.remove('open'); });
+    document.getElementById('searchToggle').onclick = () => { const b = document.getElementById('searchBox'); const inp = document.getElementById('searchInput'); const open = b.style.display !== 'block'; b.style.display = open ? 'block' : 'none'; if (!open && inp) { inp.value = ''; searchQuery = ''; renderPosters(); render(); } else if (inp) { inp.focus(); } };
+    document.getElementById('searchInput').oninput = (e) => { searchQuery = e.target.value.trim().toLowerCase(); renderPosters(); render(); };
+    document.querySelectorAll('.chip').forEach(btn => { btn.onclick = () => { document.querySelectorAll('.chip').forEach(b => b.classList.remove('active')); btn.classList.add('active'); activeFilter = btn.dataset.filter; render(); }; });
+    function renderThumb(icon, title) {
+      if (icon && (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('/') || icon.startsWith('data:image/'))) return '<img src="' + icon + '" alt="' + title + '" />';
+      return icon || (title ? title[0].toUpperCase() : 'A');
+    }
+    function openUrlInSpaceStore(url) { if (!url) return; currentAppUrl = url; document.getElementById('viewerFrame').src = url; document.getElementById('inappModal').classList.add('open'); }
+    function openInSpaceStore(item) { fetch('/api/track-open/' + encodeURIComponent(item.code), { method: 'POST' }).catch(() => {}); openUrlInSpaceStore(item.url); }
+    document.getElementById('closeViewerBtn').onclick = () => { currentAppUrl = ''; document.getElementById('inappModal').classList.remove('open'); document.getElementById('viewerMenu').classList.remove('open'); document.getElementById('viewerFrame').src = 'about:blank'; };
+    function isDirectVideo(u) { return /\.(mp4|webm|ogg)(\?.*)?$/i.test(u || '') || String(u || '').startsWith('data:video/'); }
+    function getYtId(u) { const m = (u || '').match(/(?:v=|\/embed\/|youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})/); return m ? m[1] : ''; }
+    function setPosterMediaSilent(silent) {
+      const track = document.getElementById('posterTrack');
+      if (!track) return;
+      track.querySelectorAll('video.poster-media-bg').forEach(v => {
+        if (silent) {
+          v.muted = true;
+          v.pause();
+        } else {
+          v.muted = posterMuted;
+          v.play().catch(() => {});
+        }
+      });
+      track.querySelectorAll('iframe.poster-media-bg').forEach(f => {
+        if (!f.contentWindow) return;
+        const cmd1 = silent ? 'mute' : (posterMuted ? 'mute' : 'unMute');
+        const cmd2 = silent ? 'pauseVideo' : 'playVideo';
+        f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd1, args: [] }), '*');
+        f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd2, args: [] }), '*');
+      });
+    }
+    function renderPosters() {
+      const list = Array.isArray(window.allPosters) ? window.allPosters : (window.posterData ? [window.posterData] : []);
+      const wrap = document.getElementById('posterWrap'), track = document.getElementById('posterTrack'), dots = document.getElementById('posterDots');
+      const valid = list.filter(p => p && (p.title || p.subtitle || p.mediaUrl || p.url));
+      if (searchQuery || !valid.length) { wrap.style.display = 'none'; setPosterMediaSilent(true); if (!valid.length) lastPosterSig = ''; return; }
+      wrap.style.display = 'block';
+      setPosterMediaSilent(false);
+      const sig = valid.map(p => (p.id || '') + '|' + (p.title || '') + '|' + (p.subtitle || '') + '|' + (p.mediaUrl || '') + '|' + (p.url || '')).join('||');
+      if (sig === lastPosterSig && track.children.length === valid.length) return;
+      lastPosterSig = sig;
+      track.innerHTML = ''; dots.innerHTML = '';
+      valid.forEach((p, idx) => {
+        const card = document.createElement('section'); card.className = 'poster';
+        const media = p.mediaUrl || '';
+        let vidEl = null, ytEl = null;
+        if (media && isDirectVideo(media)) {
+          vidEl = document.createElement('video'); vidEl.className = 'poster-media-bg'; vidEl.src = media;
+          vidEl.autoplay = true; vidEl.loop = true; vidEl.muted = posterMuted; vidEl.playsInline = true; vidEl.controls = false;
+          card.appendChild(vidEl);
+        } else if (media && getYtId(media)) {
+          const id = getYtId(media); ytEl = document.createElement('iframe'); ytEl.className = 'poster-media-bg';
+          ytEl.src = 'https://www.youtube.com/embed/' + id + '?enablejsapi=1&autoplay=1&mute=' + (posterMuted ? 1 : 0) + '&controls=0&rel=0&playsinline=1&loop=1&playlist=' + id;
+          ytEl.allow = 'autoplay; encrypted-media'; card.appendChild(ytEl);
+        } else if (media) {
+          const img = document.createElement('img'); img.className = 'poster-media-bg'; img.src = media; card.appendChild(img);
+        }
+        const content = document.createElement('div'); content.className = 'poster-content';
+        content.innerHTML = '<h2>' + (p.title || 'SpaceStore') + '</h2><p>' + (p.subtitle || 'Featured Event') + '</p>';
+        card.appendChild(content);
+        if (vidEl || ytEl) {
+          const mBtn = document.createElement('button'); mBtn.type = 'button'; mBtn.className = 'poster-mute';
+          mBtn.textContent = posterMuted ? '🔇' : '🔊';
+          mBtn.onclick = (e) => {
+            e.stopPropagation(); posterMuted = !posterMuted;
+            track.querySelectorAll('.poster-mute').forEach(b => b.textContent = posterMuted ? '🔇' : '🔊');
+            track.querySelectorAll('video.poster-media-bg').forEach(v => { v.muted = posterMuted; if (v.paused) v.play().catch(() => {}); });
+            track.querySelectorAll('iframe.poster-media-bg').forEach(f => { if (f.contentWindow) f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: posterMuted ? 'mute' : 'unMute', args: [] }), '*'); });
+          };
+          card.appendChild(mBtn);
+        }
+        card.onclick = () => { if (p.url) openUrlInSpaceStore(p.url); };
+        track.appendChild(card);
+        const dot = document.createElement('div'); dot.className = 'p-dot' + (idx === 0 ? ' active' : ''); dots.appendChild(dot);
+      });
+      track.onscroll = () => {
+        const w = track.clientWidth || 1, i = Math.round(track.scrollLeft / w);
+        dots.querySelectorAll('.p-dot').forEach((d, k) => d.classList.toggle('active', k === i));
+      };
+    }
+    async function loadItems() {
+      const res = await fetch('/api/items'); const data = await res.json();
+      window.allItems = data.items || []; window.allPosters = data.posters || []; window.posterData = data.poster || null; window.allNotifs = data.notifications || [];
+      renderPosters(); renderNotifications(); render();
+    }
+    setInterval(loadItems, 10000);
+    function render() {
+      const all = window.allItems || []; window.__itemMap = {}; all.forEach(i => { window.__itemMap[i.id] = i; });
+      const filtered = all.filter(item => (activeFilter === 'all' || item.category === activeFilter) && (!searchQuery || item.title.toLowerCase().includes(searchQuery) || (item.subtitle || '').toLowerCase().includes(searchQuery)));
+      const quickSource = activeFilter === 'all' ? all : all.filter(item => item.category === activeFilter);
+      document.getElementById('quickScroll').innerHTML = quickSource.map(item => '<div class="big-card quick-card" onclick="openInSpaceStore(window.__itemMap[' + item.id + '])"><div class="thumb-box">' + renderThumb(item.icon, item.title) + '</div><div class="card-title">' + item.title + '</div><div class="card-sub">' + (item.category === 'game' ? 'Game' : 'App') + '</div></div>').join('');
+      document.getElementById('gridTitle').textContent = activeFilter === 'game' ? 'Games' : activeFilter === 'app' ? 'Apps' : 'All Apps & Games';
+      document.getElementById('gridList').innerHTML = filtered.map(item => '<div class="big-card grid-card" onclick="openInSpaceStore(window.__itemMap[' + item.id + '])"><div class="thumb-box">' + renderThumb(item.icon, item.title) + '</div><div class="card-title">' + item.title + '</div><div class="card-sub">' + (item.category === 'game' ? 'Game' : 'App') + '</div></div>').join('');
+    }
+    loadItems();
+  </script>
+<script>
+(function() {
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+  }, { capture: true });
+  document.addEventListener('keydown', function(e) {
+    const k = (e.key || '').toLowerCase();
+    if (k === 'f12' || (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(k)) || (e.ctrlKey && ['u', 's'].includes(k))) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, { capture: true });
+})();
+</script>
+</body>
+</html>
