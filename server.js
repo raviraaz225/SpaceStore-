@@ -134,5 +134,11 @@ app.get("/sw.js", (req, res) => {
   res.sendFile(path.join(__dirname, "sw.js"));
 });
 
+
+app.get("/app-logo.png", (req, res) => {
+  res.type("image/png");
+  res.sendFile(path.join(__dirname, "app-logo.png"));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('SpaceStore server running on port ' + PORT));
