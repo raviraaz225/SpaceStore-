@@ -82,12 +82,14 @@ app.post('/api/owner/poster', checkOwner, (req, res) => {
     if (idx !== -1) {
       posters[idx] = { id: posters[idx].id, title: cleanTitle, subtitle: cleanSub, mediaUrl: cleanMedia, url: cleanUrl };
       addNotif('Poster update hua: ' + cleanTitle);
+      saveData();
       return res.json({ ok: true, posters, poster: posters[idx] });
     }
   }
   const newPoster = { id: Date.now(), title: cleanTitle, subtitle: cleanSub, mediaUrl: cleanMedia, url: cleanUrl };
   posters.push(newPoster);
   addNotif('Naya Event Poster juda: ' + cleanTitle, { tag: 'POSTER', targetType: 'poster', targetUrl: cleanUrl });
+  saveData();
   res.status(201).json({ ok: true, posters, poster: newPoster });
 });
 app.delete('/api/owner/poster', checkOwner, (req, res) => {
