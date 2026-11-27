@@ -102,11 +102,14 @@ app.delete('/api/owner/poster', checkOwner, (req, res) => {
 });
 app.post('/api/owner/publish', checkOwner, (req, res) => {
   const { title, url, icon, category, posterId, posterTitle, posterSubtitle, posterMediaUrl, posterUrl } = req.body || {};
-  if (typeof posterTitle === 'string' || typeof posterSubtitle === 'string' || typeof posterMediaUrl === 'string' || typeof posterUrl === 'string') {
-    const cleanTitle = (posterTitle && posterTitle.trim()) || 'SpaceStore';
-    const cleanSub = (posterSubtitle && posterSubtitle.trim()) || 'Featured Event';
-    const cleanMedia = typeof posterMediaUrl === 'string' ? posterMediaUrl.trim() : '';
-    const cleanUrl = typeof posterUrl === 'string' ? posterUrl.trim() : '';
+  const hasPoster = [posterTitle, posterSubtitle, posterMediaUrl, posterUrl].some(v => typeof v === "string");
+  let posterUpdated = false;
+
+  if (hasPoster) {
+    const cleanTitle = (posterTitle && posterTitle.trim()) || "SpaceStore";
+    const cleanSub = (posterSubtitle && posterSubtitle.trim()) || "Featured Event";
+    const cleanMedia = typeof posterMediaUrl === "string" ? posterMediaUrl.trim() : "";
+    const cleanUrl = typeof posterUrl === "string" ? posterUrl.trim() : "";
     if (posterId) {
       const idx = posters.findIndex(p => p.id === Number(posterId));
       if (idx !== -1) posters[idx] = { id: posters[idx].id, title: cleanTitle, subtitle: cleanSub, mediaUrl: cleanMedia, url: cleanUrl };
@@ -116,18 +119,46 @@ app.post('/api/owner/publish', checkOwner, (req, res) => {
     } else {
       posters[0] = { id: posters[0].id, title: cleanTitle, subtitle: cleanSub, mediaUrl: cleanMedia, url: cleanUrl };
     }
-    addNotif('Event Poster update hua: ' + cleanTitle, { tag: 'POSTER', targetType: 'poster', targetUrl: cleanUrl });
+    addNotif("Event Poster update hua: " + cleanTitle, { tag: "POSTER", targetType: "poster", targetUrl: cleanUrl });
+    posterUpdated = true;
   }
-  if (!title && !url) saveData();
-  return res.json({ posterUpdated: true, posters, poster: posters[0] || null });
-  if (!title || !url) return res.status(400).json({ error: 'Name aur link zaroori hai.' });
-  const code = 'SS-' + Math.random().toString(36).substring(2, 7).toUpperCase();
-  const cat = category === 'game' ? 'game' : 'app';
-  const newItem = { id: Date.now(), title: title.trim(), subtitle: cat === 'game' ? 'Game' : 'App', url: url.trim(), icon: (icon && icon.trim()) || title.trim()[0].toUpperCase(), category: cat, code, views: 0, status: 'live' };
-  items.unshift(newItem);
-  addNotif('Naya ' + (cat === 'game' ? 'Game' : 'App') + ' joda gaya: ' + newItem.title, { tag: cat === 'game' ? 'NEW GAME' : 'NEW APP', targetType: 'item', targetUrl: newItem.url, targetCode: newItem.code, targetId: newItem.id });
-  saveData();
-  res.status(201).json(newItem);
+
+  const hasItem = Boolean((title && title.trim()) || (url && url.trim()));
+  if (hasItem) {
+    if (!title || !title.trim() || !url || !url.trim()) {
+      return res.status(400).json({ error: "Name aur link zaroori hai." });
+    }
+    const code = "SS-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+    const cat = category === "game" ? "game" : "app";
+    const newItem = {
+      id: Date.now(),
+      title: title.trim(),
+      subtitle: cat === "game" ? "Game" : "App",
+      url: url.trim(),
+      icon: (icon && icon.trim()) || title.trim()[0].toUpperCase(),
+      category: cat,
+      code,
+      views: 0,
+      status: "live"
+    };
+    items.unshift(newItem);
+    addNotif("Naya " + (cat === "game" ? "Game" : "App") + " joda gaya: " + newItem.title, {
+      tag: cat === "game" ? "NEW GAME" : "NEW APP",
+      targetType: "item",
+      targetUrl: newItem.url,
+      targetCode: newItem.code,
+      targetId: newItem.id
+    });
+    saveData();
+    return res.status(201).json({ ...newItem, posterUpdated, posters, poster: posters[0] || null });
+  }
+
+  if (posterUpdated) {
+    saveData();
+    return res.json({ posterUpdated: true, posters, poster: posters[0] || null });
+  }
+
+  return res.status(400).json({ error: "Poster ya App/Game ka data bhejein." });
 });
 app.put('/api/owner/items/:id', checkOwner, (req, res) => {
   const idx = items.findIndex(i => i.id === Number(req.params.id));
