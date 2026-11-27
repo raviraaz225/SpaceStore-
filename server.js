@@ -203,4 +203,9 @@ app.get("/app-logo.png", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+app.get('/owner-manifest.json', (req, res) => {
+  res.type('application/manifest+json').sendFile(path.join(__dirname, 'owner-manifest.json'));
+});
+
 app.listen(PORT, () => console.log('SpaceStore server running on port ' + PORT));
