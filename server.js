@@ -20,6 +20,29 @@ let items = [
   { id: 6, title: 'MDN Web Docs', subtitle: 'App', url: 'https://developer.mozilla.org', icon: '💻', category: 'app', code: 'SS-MDN2', views: 32, status: 'live' }
 ];
 
+
+const DATA_FILE = path.join(__dirname, "data.json");
+function loadData() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+      if (Array.isArray(parsed.posters)) posters = parsed.posters;
+      if (Array.isArray(parsed.notifications)) notifications = parsed.notifications;
+      if (Array.isArray(parsed.items)) items = parsed.items;
+    }
+  } catch (e) {
+    console.error("Error reading data.json:", e.message);
+  }
+}
+function saveData() {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify({ posters, notifications, items }, null, 2), "utf8");
+  } catch (e) {
+    console.error("Error saving data.json:", e.message);
+  }
+}
+loadData();
+
 function addNotif(text, meta) {
   const m = meta || {};
   notifications.unshift({
@@ -33,6 +56,7 @@ function addNotif(text, meta) {
     time: new Date().toLocaleTimeString()
   });
   notifications = notifications.slice(0, 40);
+  saveData();
 }
 function checkOwner(req, res, next) {
   const key = (req.body && req.body.ownerKey) || req.headers['x-owner-key'] || req.query.ownerKey;
@@ -93,13 +117,15 @@ app.post('/api/owner/publish', checkOwner, (req, res) => {
     }
     addNotif('Event Poster update hua: ' + cleanTitle, { tag: 'POSTER', targetType: 'poster', targetUrl: cleanUrl });
   }
-  if (!title && !url) return res.json({ posterUpdated: true, posters, poster: posters[0] || null });
+  if (!title && !url) saveData();
+  return res.json({ posterUpdated: true, posters, poster: posters[0] || null });
   if (!title || !url) return res.status(400).json({ error: 'Name aur link zaroori hai.' });
   const code = 'SS-' + Math.random().toString(36).substring(2, 7).toUpperCase();
   const cat = category === 'game' ? 'game' : 'app';
   const newItem = { id: Date.now(), title: title.trim(), subtitle: cat === 'game' ? 'Game' : 'App', url: url.trim(), icon: (icon && icon.trim()) || title.trim()[0].toUpperCase(), category: cat, code, views: 0, status: 'live' };
   items.unshift(newItem);
   addNotif('Naya ' + (cat === 'game' ? 'Game' : 'App') + ' joda gaya: ' + newItem.title, { tag: cat === 'game' ? 'NEW GAME' : 'NEW APP', targetType: 'item', targetUrl: newItem.url, targetCode: newItem.code, targetId: newItem.id });
+  saveData();
   res.status(201).json(newItem);
 });
 app.put('/api/owner/items/:id', checkOwner, (req, res) => {
@@ -110,12 +136,14 @@ app.put('/api/owner/items/:id', checkOwner, (req, res) => {
   const cat = category === 'game' ? 'game' : 'app';
   items[idx] = { ...items[idx], title: title.trim(), subtitle: cat === 'game' ? 'Game' : 'App', url: url.trim(), icon: (icon && icon.trim()) || items[idx].icon, category: cat };
   addNotif('Update hua: ' + items[idx].title, { tag: 'UPDATE', targetType: 'item', targetUrl: items[idx].url, targetCode: items[idx].code, targetId: items[idx].id });
+  saveData();
   res.json(items[idx]);
 });
 app.delete('/api/owner/items/:id', checkOwner, (req, res) => {
   const idx = items.findIndex(i => i.id === Number(req.params.id));
   if (idx === -1) return res.status(404).json({ error: 'Item nahi mila.' });
   const [removed] = items.splice(idx, 1);
+  saveData();
   res.json({ deleted: true, id: removed.id, title: removed.title });
 });
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
